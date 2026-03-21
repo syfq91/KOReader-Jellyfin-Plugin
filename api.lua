@@ -26,10 +26,17 @@ function API:new(config)
 end
 
 function API:getAuthHeader()
-	return string.format(
+	local header = string.format(
 		'MediaBrowser Client="KOReader", Device="eReader", DeviceId="%s", Version="1.0.0"',
 		self.config:getDeviceId()
 	)
+
+	local token = self.config:getAccessToken()
+	if token and token ~= "" then
+		header = header .. string.format(', Token="%s"', token)
+	end
+
+	return header
 end
 
 function API:authenticateByPassword(username, password)
@@ -47,7 +54,7 @@ function API:authenticateByPassword(username, password)
 		headers = {
 			["Content-Type"] = "application/json",
 			["Content-Length"] = tostring(#auth_data),
-			["X-Emby-Authorization"] = self:getAuthHeader(),
+			["Authorization"] = self:getAuthHeader(),
 		},
 		source = ltn12.source.string(auth_data),
 		sink = ltn12.sink.table(response_body),
@@ -69,7 +76,7 @@ function API:initiateQuickConnect()
 		url = qc_url,
 		method = "POST",
 		headers = {
-			["X-Emby-Authorization"] = self:getAuthHeader(),
+			["Authorization"] = self:getAuthHeader(),
 		},
 		sink = ltn12.sink.table(response_body),
 	}
@@ -90,7 +97,7 @@ function API:checkQuickConnect(secret)
 		url = check_url,
 		method = "GET",
 		headers = {
-			["X-Emby-Authorization"] = self:getAuthHeader(),
+			["Authorization"] = self:getAuthHeader(),
 		},
 		sink = ltn12.sink.table(response_body),
 	}
@@ -117,7 +124,7 @@ function API:authenticateWithQuickConnect(secret)
 		headers = {
 			["Content-Type"] = "application/json",
 			["Content-Length"] = tostring(#auth_data),
-			["X-Emby-Authorization"] = self:getAuthHeader(),
+			["Authorization"] = self:getAuthHeader(),
 		},
 		source = ltn12.source.string(auth_data),
 		sink = ltn12.sink.table(response_body),
@@ -142,7 +149,7 @@ function API:getUserViews()
 		url = views_url,
 		method = "GET",
 		headers = {
-			["X-Emby-Token"] = self.config:getAccessToken(),
+			["Authorization"] = self:getAuthHeader(),
 		},
 		sink = ltn12.sink.table(response_body),
 	}
@@ -175,7 +182,7 @@ function API:getItemsInLibrary(library_id)
 		url = items_url,
 		method = "GET",
 		headers = {
-			["X-Emby-Token"] = self.config:getAccessToken(),
+			["Authorization"] = self:getAuthHeader(),
 		},
 		sink = ltn12.sink.table(response_body),
 	}
@@ -206,7 +213,7 @@ function API:downloadItem(item_id, filepath)
 		url = download_url,
 		method = "GET",
 		headers = {
-			["X-Emby-Token"] = self.config:getAccessToken(),
+			["Authorization"] = self:getAuthHeader(),
 		},
 		sink = ltn12.sink.file(file),
 	}
@@ -232,7 +239,7 @@ function API:setPlayedStatus(item_id, played)
 		url = status_url,
 		method = "POST",
 		headers = {
-			["X-Emby-Token"] = self.config:getAccessToken(),
+			["Authorization"] = self:getAuthHeader(),
 			["Content-Length"] = "0",
 		},
 	}
