@@ -209,20 +209,21 @@ function UI:showBooksInLibrary(library_id, library_name)
 end
 
 function UI:showBooksMenu(books, library_name)
-	logger.info("Jellyfin: Showing books menu with", #books, "books")
-
-	self.current_books = books
+	logger.info("Jellyfin: Showing items menu with", #books, "items")
 
 	local items = {}
 
-	for i, book in ipairs(books) do
-		local read_status = book.UserData and book.UserData.Played and " ✓" or ""
+	for i, item in ipairs(books) do
+		local is_folder = item.IsFolder
+		local prefix = is_folder and "📁 " or ""
+		local read_status = (not is_folder and item.UserData and item.UserData.Played) and " ✓" or ""
 		table.insert(items, {
-			text = book.Name .. read_status,
+			text = prefix .. item.Name .. read_status,
+			jellyfin_item = item,
 		})
 	end
 
-	logger.info("Jellyfin: Creating books menu with", #items, "items")
+	logger.info("Jellyfin: Creating items menu with", #items, "items")
 
 	local menu
 	menu = Menu:new {
@@ -234,13 +235,13 @@ function UI:showBooksMenu(books, library_name)
 		onMenuChoice = function(_, choice)
 			UIManager:close(menu)
 
-			local book_name = choice.text:gsub(" ✓$", "")
-			for _, book in ipairs(self.current_books) do
-				if book.Name == book_name then
-					logger.info("Jellyfin: Book selected:", book.Name)
-					self:showBookActions(book)
-					break
-				end
+			local selected_item = choice.jellyfin_item
+			if selected_item.IsFolder then
+				logger.info("Jellyfin: Folder selected:", selected_item.Name)
+				self:showBooksInLibrary(selected_item.Id, selected_item.Name)
+			else
+				logger.info("Jellyfin: Book selected:", selected_item.Name)
+				self:showBookActions(selected_item)
 			end
 		end,
 	}
